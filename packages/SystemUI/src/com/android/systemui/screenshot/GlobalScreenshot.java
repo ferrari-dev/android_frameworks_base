@@ -40,7 +40,8 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.media.MediaActionSound;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -439,7 +440,8 @@ class GlobalScreenshot {
 
     private AsyncTask<Void, Void, Void> mSaveInBgTask;
 
-    private MediaActionSound mCameraSound;
+    private SoundPool mCameraSoundPool;
+    private int mCameraSoundId;
 
     private final int mSfHwRotation;
 
@@ -512,8 +514,14 @@ class GlobalScreenshot {
         mPreviewHeight = r.getDimensionPixelSize(R.dimen.notification_max_height);
 
         // Setup the Camera shutter sound
-        mCameraSound = new MediaActionSound();
-        mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
+        mCameraSoundPool = new SoundPool.Builder()
+                .setMaxStreams(1)
+                .setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                .build();
+        mCameraSoundId = mCameraSoundPool.load("/system/media/audio/ui/camera_click.ogg", 1);
 
         // Load hardware rotation from prop
         mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
@@ -721,7 +729,7 @@ class GlobalScreenshot {
             @Override
             public void run() {
                 // Play the shutter sound to notify that we've taken a screenshot
-                mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
+                mCameraSoundPool.play(mCameraSoundId, 1.0f, 1.0f, 0, 0, 1);
 
                 mScreenshotView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 mScreenshotView.buildLayer();
